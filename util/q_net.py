@@ -49,3 +49,16 @@ def make_q_nets(env: gym.Env, units: int = 64, layers: int = 3):
         torch.nn.Linear(units, env.action_space.n),
     )
     return q_net, target_q_net
+
+
+def save_models(q_net, target_q_net, fpath):
+    torch.save({
+        'q_net_state_dict': q_net.state_dict(),
+        'target_q_net_state_dict': target_q_net.state_dict(),
+    }, fpath)
+
+def load_models(fpath, q_net, target_q_net):
+    checkpoint = torch.load(fpath)
+    q_net.load_state_dict(checkpoint['q_net_state_dict'])
+    target_q_net.load_state_dict(checkpoint['target_q_net_state_dict'])
+    

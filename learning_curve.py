@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import os
 
 def get_path(agent: str, env: str, extension: str):
-    return f'logs/{agent}/{env}.{extension}'
+    return f'logs/{agent}/{env}_train.{extension}'
 
 def plot(agent: str, env: str):
     path_csv = get_path(agent, env, 'csv')
