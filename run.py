@@ -1,19 +1,38 @@
 import yaml
 import argparse
 import os
-import csv
 
 import gym
 import torch
 import numpy as np
+from torch.utils.tensorboard import SummaryWriter
 
 from util.buffer import ReplayBuffer
 from util.tools import set_all_seeds
-from util.q_net import learn_ddqn_mlp, learn_dqn_mlp, make_q_nets, save_models, load_models
+from util.q_net import learn_ddqn_mlp, learn_dqn_mlp, make_q_nets, save_models
 
 configs = {}
 
-import numpy as np
+def evaluate(env, q_net, eval_episodes):
+    rewards = []
+    for _ in range(eval_episodes):
+        observation, _ = env.reset()
+        observation = torch.from_numpy(observation)
+        finished = False
+        cumulative_reward = 0
+
+        while not finished:
+            action = q_net(observation.unsqueeze(0)).argmax(axis=-1).squeeze().item()
+            next_observation, reward, terminated, truncated, _ = env.step(action)
+            cumulative_reward += reward
+            next_observation = torch.from_numpy(next_observation)
+            observation = next_observation
+            finished = terminated or truncated
+
+        rewards.append(cumulative_reward)
+    avg_reward = np.mean(rewards)
+    print(f"Evaluation over {eval_episodes} episodes: Average Reward: {avg_reward}")
+    return avg_reward
 
 def main(configs):
     set_all_seeds(configs['seed'])
@@ -32,91 +51,84 @@ def main(configs):
 
     buffer = ReplayBuffer(configs['replay_buffer_capacity'], env.observation_space.shape[0], 1)
 
-    log_folder = f"logs/{configs['agent']}"
+    log_folder = f"logs/{configs['env']}/{configs['agent']}"
     os.makedirs(log_folder, exist_ok=True)
-    op = 'test' if configs['test'] else 'train'
-    log_file_path = f"{log_folder}/{configs['env']}_{op}.csv"
+    
+    writer = SummaryWriter(log_dir=log_folder)
 
     rewards = []
-    save_threshold = 100
+    n = 100
     best_avg_reward = -float('inf')
 
-    if configs['test'] == True:
-        configs['warm_up_episodes'] = 0
-        load_models(f"{log_folder}/{configs['env']}_best_model.pth", q_net, target_q_net)
+    for episode in range(configs['n_episodes']):
+        observation, _ = env.reset()
+        observation = torch.from_numpy(observation)
+        finished = False
+        episode_length = 0
+        cumulative_reward = 0
 
-    with open(log_file_path, 'w', newline='') as csvfile:
-        fieldnames = ['episode', 'reward', 'episode_length']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-        writer.writeheader()
+        while not finished:
+            if episode < configs['warm_up_episodes']:
+                action = env.action_space.sample()
+            else:
+                action = q_net(observation.unsqueeze(0)).argmax(axis=-1).squeeze().item()
 
-        for episode in range(configs['n_episodes']):
-            observation, _ = env.reset()
-            observation = torch.from_numpy(observation)
-            finished = False
-            episode_length = 0
-            cumulative_reward = 0
+            next_observation, reward, terminated, truncated, _ = env.step(action)
 
-            while not finished:
-                if episode < configs['warm_up_episodes']:
-                    action = env.action_space.sample()
-                else:
-                    action = q_net(observation.unsqueeze(0)).argmax(axis=-1).squeeze().item()
+            cumulative_reward += reward
+            next_observation = torch.from_numpy(next_observation)
+    
+            action = np.array([action], dtype=np.float32)
+            action = torch.from_numpy(action)
 
-                next_observation, reward, terminated, truncated, _ = env.step(action)
+            buffer.add(observation, action, next_observation, reward, terminated)
 
-                cumulative_reward += reward
-                next_observation = torch.from_numpy(next_observation)
-        
-                action = np.array([action], dtype=np.float32)
-                action = torch.from_numpy(action)
+            observation = next_observation
+            finished = terminated or truncated
+            episode_length += 1
 
-                if not configs['test']:
-                    buffer.add(observation, action, next_observation, reward, terminated)
+        rewards.append(cumulative_reward)
+        if len(rewards) >= n:
+            avg_train_reward = np.mean(rewards[-n:])
+            writer.add_scalar('train_return', avg_train_reward, episode)
+            if avg_train_reward > best_avg_reward:
+                best_avg_reward = avg_train_reward
+                save_path = f"{log_folder}/{configs['env']}_best_model.pth"
+                save_models(q_net, target_q_net, save_path)
+                print(f"New best model saved with average reward: {best_avg_reward}")
 
-                observation = next_observation
-                finished = terminated or truncated
-                episode_length += 1
-
-            rewards.append(cumulative_reward)
-            writer.writerow({'episode': episode, 'reward': cumulative_reward, 'episode_length': episode_length})
-            print("Episode: ", episode, "Cumulative Reward:", cumulative_reward, "Episode length:", episode_length)
-
-            if len(rewards) >= save_threshold and not configs['test']:
-                current_avg_reward = np.mean(rewards[-save_threshold:])
-                if current_avg_reward > best_avg_reward:
-                    best_avg_reward = current_avg_reward
-                    save_path = f"{log_folder}/{configs['env']}_best_model.pth"
-                    save_models(q_net, target_q_net, save_path)
-                    print(f"New best model saved with average reward: {best_avg_reward}")
-
-            if len(buffer) >= configs['batch_size'] and not configs['test']:
-                for _ in range(configs['train_steps']):
-                    _ = learn(
-                        q_net,
-                        target_q_net,
-                        buffer.sample(configs['batch_size']),
-                        optimizer,
-                        configs['gamma'],
-                    )
-
-                if episode % configs['target_update_freq'] == 0:
-                    target_q_net.load_state_dict(q_net.state_dict())
+        print("Episode: ", episode, "Cumulative Reward:", cumulative_reward, "Episode length:", episode_length)
 
 
+        if len(buffer) >= configs['batch_size']:
+            for _ in range(configs['train_steps']):
+                _ = learn(
+                    q_net,
+                    target_q_net,
+                    buffer.sample(configs['batch_size']),
+                    optimizer,
+                    configs['gamma'],
+                )
+
+            if episode % configs['target_update_freq'] == 0:
+                target_q_net.load_state_dict(q_net.state_dict())
+
+        if (episode + 1) % configs['eval_freq'] == 0:
+            avg_reward = evaluate(env, q_net, configs['eval_episodes'])
+            writer.add_scalar('eval_return', avg_reward, episode)
+
+    writer.close()
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train agent in a gym environment')
     parser.add_argument('--agent', type=str, default='dqn', help='Specify the RL agent (dqn or ddqn)')
     parser.add_argument('--env', type=str, default='CartPole-v1', help='Specify the gym environment')
-    parser.add_argument('--test', type=bool, default=False, help='Test model?')
     parser.add_argument('--config', type=str, default='./configs.yaml', help='Path to configuration file')
     args = parser.parse_args()
 
     configs = {
         'agent': args.agent,
-        'env': args.env,
-        'test': args.test
+        'env': args.env
     }
 
     with open(args.config, 'r') as file:

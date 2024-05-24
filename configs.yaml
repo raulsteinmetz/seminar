@@ -1,6 +1,5 @@
-env_id: CartPole-v1
 batch_size: 256
-n_episodes: 1000
+n_episodes: 3000
 warm_up_episodes: 100
 gamma: 0.99
 train_steps: 5
@@ -10,3 +9,5 @@ replay_buffer_capacity: 10000
 units: 64
 layers: 3
 seed: 0
+eval_freq: 50
+eval_episodes: 10
