@@ -11,3 +11,4 @@ layers: 3
 seed: 0
 eval_freq: 50
 eval_episodes: 10
+final_eval_episodes: 100

@@ -9,11 +9,16 @@ from torch.utils.tensorboard import SummaryWriter
 
 from util.buffer import ReplayBuffer
 from util.tools import set_all_seeds
-from util.q_net import learn_ddqn_mlp, learn_dqn_mlp, make_q_nets, save_models
+from util.q_net import learn_ddqn_mlp, learn_dqn_mlp, make_q_nets, save_models, load_models
 
 configs = {}
 
-def evaluate(env, q_net, eval_episodes):
+def evaluate(env, q_net, final=False):
+    if final:
+        _, dummy = make_q_nets(env, configs['units'], configs['layers'])
+        load_models(f"logs/{configs['env']}/{configs['agent']}/best_model.pth", q_net, dummy)
+        eval_episodes = configs['final_eval_episodes']
+    eval_episodes = configs['eval_episodes']
     rewards = []
     for _ in range(eval_episodes):
         observation, _ = env.reset()
@@ -31,7 +36,8 @@ def evaluate(env, q_net, eval_episodes):
 
         rewards.append(cumulative_reward)
     avg_reward = np.mean(rewards)
-    print(f"Evaluation over {eval_episodes} episodes: Average Reward: {avg_reward}")
+    if not final:
+        print(f"Evaluation over {eval_episodes} episodes: Average Reward: {avg_reward}")
     return avg_reward
 
 def main(configs):
@@ -93,7 +99,7 @@ def main(configs):
             writer.add_scalar('train_return', avg_train_reward, episode)
             if avg_train_reward > best_avg_reward:
                 best_avg_reward = avg_train_reward
-                save_path = f"{log_folder}/{configs['env']}_best_model.pth"
+                save_path = f"logs/{configs['env']}/{configs['agent']}/best_model.pth"
                 save_models(q_net, target_q_net, save_path)
                 print(f"New best model saved with average reward: {best_avg_reward}")
 
@@ -114,10 +120,14 @@ def main(configs):
                 target_q_net.load_state_dict(q_net.state_dict())
 
         if (episode + 1) % configs['eval_freq'] == 0:
-            avg_reward = evaluate(env, q_net, configs['eval_episodes'])
+            avg_reward = evaluate(env, q_net, False)
             writer.add_scalar('eval_return', avg_reward, episode)
 
     writer.close()
+
+    # final eval
+    print (f'Final evaluate moving average for {configs["final_eval_episodes"]} episodes: {evaluate(env, q_net, True)}')
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train agent in a gym environment')
