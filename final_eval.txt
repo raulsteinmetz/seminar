@@ -1,4 +1,2 @@
-Final evaluate moving average for 100 episodes: 218.83622473574619 - DDQN LL
-Final evaluate moving average for 100 episodes: 167.694065965785466 - DQN LL
-Final evaluate moving average for 100 episodes: 500 - DDQN CP
-Final evaluate moving average for 100 episodes: 500 - DQN CP
+ddqn cp -> 498.41
+dqn cp --> 462.87

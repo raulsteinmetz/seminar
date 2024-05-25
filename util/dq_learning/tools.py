@@ -9,7 +9,7 @@ from util.dq_learning.q_net import make_q_nets, save_models, load_models
 
 def _evaluate(env, q_net, configs, device, final=False):
     if final:
-        _, dummy = make_q_nets(env, configs['units'], configs['layers'])
+        _, dummy = make_q_nets(env, configs['units'])
         load_models(f"logs/{configs['env']}/{configs['agent']}/best_model.pth", q_net, dummy)
         eval_episodes = configs['final_eval_episodes']
     else:
