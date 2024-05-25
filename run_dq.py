@@ -14,7 +14,7 @@ configs = {}
 def main():
     set_all_seeds(configs['seed'])
     env = gym.make(configs['env'])
-    q_net, target_q_net = make_q_nets(env, configs['units'], configs['layers'])
+    q_net, target_q_net = make_q_nets(env, configs['units'])
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     if configs['agent'] == 'dqn':
         learn = learn_dqn

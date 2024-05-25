@@ -49,7 +49,7 @@ def learn_dqn(net, target, data, optimizer, gamma=0.99, device='cpu'):
     optimizer.step()
     return loss.item()
 
-def make_q_nets(env: gym.Env, units: int = 64, layers: int = 3):
+def make_q_nets(env: gym.Env, units: int = 64):
     q_net = torch.nn.Sequential(
         torch.nn.Linear(env.observation_space.shape[0], units),
         torch.nn.ReLU(),
