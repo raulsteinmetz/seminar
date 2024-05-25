@@ -1,11 +1,12 @@
 import yaml
 import argparse
+import torch
 
 import gym
 
 from util.dq_learning.tools import train
 from util.tools import set_all_seeds
-from util.dq_learning.q_net import learn_ddqn_mlp, learn_dqn_mlp, make_q_nets
+from util.dq_learning.q_net import learn_ddqn, learn_dqn, make_q_nets
 
 configs = {}
 
@@ -14,11 +15,12 @@ def main():
     set_all_seeds(configs['seed'])
     env = gym.make(configs['env'])
     q_net, target_q_net = make_q_nets(env, configs['units'], configs['layers'])
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     if configs['agent'] == 'dqn':
-        learn = learn_dqn_mlp
+        learn = learn_dqn
     elif configs['agent'] == 'ddqn':
-        learn = learn_ddqn_mlp
-    train(configs, env, q_net, target_q_net, learn)
+        learn = learn_ddqn
+    train(configs, env, q_net, target_q_net, learn, device)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train agent in a gym environment')

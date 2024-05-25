@@ -7,16 +7,19 @@ from tqdm import tqdm
 from util.dq_learning.buffer import ReplayBuffer
 from util.dq_learning.q_net import make_q_nets, save_models, load_models
 
-def _evaluate(env, q_net, configs, final=False):
+def _evaluate(env, q_net, configs, device, final=False):
     if final:
         _, dummy = make_q_nets(env, configs['units'], configs['layers'])
         load_models(f"logs/{configs['env']}/{configs['agent']}/best_model.pth", q_net, dummy)
         eval_episodes = configs['final_eval_episodes']
-    eval_episodes = configs['eval_episodes']
+    else:
+        eval_episodes = configs['eval_episodes']
+
+    q_net.to(device)
     rewards = []
     for _ in range(eval_episodes):
         observation, _ = env.reset()
-        observation = torch.from_numpy(observation)
+        observation = torch.from_numpy(observation).to(device)
         finished = False
         cumulative_reward = 0
 
@@ -24,7 +27,7 @@ def _evaluate(env, q_net, configs, final=False):
             action = q_net(observation.unsqueeze(0)).argmax(axis=-1).squeeze().item()
             next_observation, reward, terminated, truncated, _ = env.step(action)
             cumulative_reward += reward
-            next_observation = torch.from_numpy(next_observation)
+            next_observation = torch.from_numpy(next_observation).to(device)
             observation = next_observation
             finished = terminated or truncated
 
@@ -32,8 +35,11 @@ def _evaluate(env, q_net, configs, final=False):
     avg_reward = np.mean(rewards)
     return avg_reward
 
+def train(configs, env, q_net, target_q_net, learn, device):
 
-def train(configs, env, q_net, target_q_net, learn):        
+    q_net.to(device)
+    target_q_net.to(device)
+
     target_q_net.load_state_dict(q_net.state_dict()) # target initiates as a hardcopy of q
     optimizer = torch.optim.Adam(q_net.parameters(), configs['learning_rate']) # adam is the most common in the area
 
@@ -50,7 +56,7 @@ def train(configs, env, q_net, target_q_net, learn):
 
     for episode in tqdm(range(configs['n_episodes']), desc="Training Episodes"):
         observation, _ = env.reset()
-        observation = torch.from_numpy(observation)
+        observation = torch.from_numpy(observation).to(device)
         finished = False
         episode_length = 0
         episode_reward = 0
@@ -64,10 +70,10 @@ def train(configs, env, q_net, target_q_net, learn):
             next_observation, reward, terminated, truncated, _ = env.step(action)
 
             episode_reward += reward
-            next_observation = torch.from_numpy(next_observation)
+            next_observation = torch.from_numpy(next_observation).to(device)
     
             action = np.array([action], dtype=np.float32)
-            action = torch.from_numpy(action)
+            action = torch.from_numpy(action).to(device)
 
             buffer.add(observation, action, next_observation, reward, terminated)
 
@@ -93,16 +99,17 @@ def train(configs, env, q_net, target_q_net, learn):
                     buffer.sample(configs['batch_size']),
                     optimizer,
                     configs['gamma'],
+                    device
                 )
 
             if episode % configs['target_update_freq'] == 0:
                 target_q_net.load_state_dict(q_net.state_dict()) # hard update is default on dqn and ddqn
 
         if (episode + 1) % configs['eval_freq'] == 0:
-            avg_reward = _evaluate(env, q_net, configs, False) # eval every n episodes
+            avg_reward = _evaluate(env, q_net, configs, device, False) # eval every n episodes
             writer.add_scalar('eval_return', avg_reward, episode)
 
     writer.close()
 
     # final eval
-    print (f'Final evaluate moving average for {configs["final_eval_episodes"]} episodes: {_evaluate(env, q_net, configs, True)}')
+    print(f'Final evaluate moving average for {configs["final_eval_episodes"]} episodes: {_evaluate(env, q_net, configs, device, True)}')
