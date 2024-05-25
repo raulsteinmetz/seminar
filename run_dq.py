@@ -7,9 +7,9 @@ import torch
 import numpy as np
 from torch.utils.tensorboard import SummaryWriter
 
-from util.buffer import ReplayBuffer
+from util.dq_learning.buffer import ReplayBuffer
 from util.tools import set_all_seeds
-from util.q_net import learn_ddqn_mlp, learn_dqn_mlp, make_q_nets, save_models, load_models
+from util.dq_learning.q_net import learn_ddqn_mlp, learn_dqn_mlp, make_q_nets, save_models, load_models
 
 configs = {}
 
@@ -42,9 +42,7 @@ def evaluate(env, q_net, final=False):
 
 def main(configs):
     set_all_seeds(configs['seed'])
-
     env = gym.make(configs['env'])
-
     q_net, target_q_net = make_q_nets(env, configs['units'], configs['layers'])
 
     if configs['agent'] == 'dqn':
@@ -133,7 +131,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train agent in a gym environment')
     parser.add_argument('--agent', type=str, default='dqn', help='Specify the RL agent (dqn or ddqn)')
     parser.add_argument('--env', type=str, default='CartPole-v1', help='Specify the gym environment')
-    parser.add_argument('--config', type=str, default='./configs.yaml', help='Path to configuration file')
+    parser.add_argument('--config', type=str, default='./configs/config_dq.yaml', help='Path to configuration file')
     args = parser.parse_args()
 
     configs = {

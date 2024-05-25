@@ -1,0 +1,8 @@
+alpha: 0.1
+gamma: 0.99
+epsilon_decay: 0.999
+epsilon_min: 0.01
+episodes: 10000
+max_steps: 100
+log_dir: "logs/FrozenLake-v1"
+seed: 0
