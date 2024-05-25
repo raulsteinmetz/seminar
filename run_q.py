@@ -3,7 +3,7 @@ import numpy as np
 import yaml
 import argparse
 from torch.utils.tensorboard import SummaryWriter
-from util.q_learning.tools import train_q as train, evaluate_policy_q as eval
+from util.q_learning.tools import train as train, evaluate
 from util.tools import set_all_seeds
 
 configs = {}
@@ -14,7 +14,7 @@ def main():
     Q = np.zeros((env.observation_space.n, env.action_space.n))
     summary_writer = SummaryWriter(configs['log_dir'])
     train(Q, env, summary_writer, configs)
-    eval(Q, env, configs, episodes=1000)
+    evaluate(Q, env, configs, episodes=1000)
     
 
 if __name__ == '__main__':

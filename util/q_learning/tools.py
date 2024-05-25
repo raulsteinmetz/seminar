@@ -8,7 +8,7 @@ def _choose_action(state, Q, epsilon, action_space, eval=False):
     else: # exploitation (action with the best q value)
         return np.argmax(Q[state, :])
 
-def evaluate_policy(Q, env, configs, episodes=100):
+def evaluate(Q, env, configs, episodes=100):
     total_rewards = 0
 
     for _ in range(episodes):
