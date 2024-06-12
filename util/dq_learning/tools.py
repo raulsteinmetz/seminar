@@ -53,7 +53,7 @@ def train(configs, env, q_net, target_q_net, learn, device):
     rewards = []
     n = 100 # moving average
     best_avg_reward = -float('inf')
-
+    
     for episode in tqdm(range(configs['n_episodes']), desc="Training Episodes"):
         observation, _ = env.reset()
         observation = torch.from_numpy(observation).to(device)
@@ -112,4 +112,5 @@ def train(configs, env, q_net, target_q_net, learn, device):
     writer.close()
 
     # final eval
-    print(f'Final evaluate moving average for {configs["final_eval_episodes"]} episodes: {_evaluate(env, q_net, configs, device, True)}')
+    print(f'Final evaluate moving average for {configs["final_eval_episodes"]} \
+          episodes: {_evaluate(env, q_net, configs, device, True)}')
