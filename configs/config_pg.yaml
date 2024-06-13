@@ -1,0 +1,6 @@
+seed: 42
+units: 64
+learning_rate: 0.001
+n_episodes: 4500
+gamma: 0.99
+moving_avg_window: 250
