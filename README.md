@@ -1,9 +1,6 @@
 # Reinforcement Learning Seminar
 
-This repository hosts code for a seminar on Reinforcement Learning. It includes simple implementations of Q-Table, Deep Q-Network, Double Deep Q-Network, and REINFORCE on Gym environments.
-To configure hyperparameters, please refer to the `./configs/` directory.
-
-
+This repository hosts code for a seminar on Reinforcement Learning.
 
 To train and evaluate the Q-Table, run:
 
@@ -28,6 +25,8 @@ To access real-time plots:
 ```bash
 tensorboard --logdir ./logs/
 ```
+
+To configure hyperparameters, please refer to the `./configs/` directory.
 
 
 
