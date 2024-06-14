@@ -13,7 +13,7 @@ def train(configs, env, policy_net, device):
 
     reward_queue = deque(maxlen=configs['moving_avg_window'])
     for episode in tqdm(range(configs['n_episodes']), desc="Training Episodes"):
-        observation, _ = env.reset()
+        observation = env.reset()[0]
         observation = torch.tensor(observation, dtype=torch.float32).to(device)
         
         log_probs = []
@@ -53,7 +53,6 @@ def learn(configs, optimizer, log_probs, rewards, device):
     returns = [sum(discounts[j] * rewards[j] for j in range(i, len(rewards))) for i in range(len(rewards))]
     returns = torch.tensor(returns, dtype=torch.float32).to(device)
 
-    # policy loss
     policy_loss = []
     for log_prob, Gt in zip(log_probs, returns):
         policy_loss.append(-log_prob * Gt)

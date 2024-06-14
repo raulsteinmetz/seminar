@@ -6,7 +6,7 @@ class ReplayBuffer:
     def __init__(self, capacity, observation_dim, action_dim):
         self.capacity = capacity
         self.observations = torch.zeros(capacity, observation_dim)
-        self.actions = torch.zeros(capacity, action_dim)  # dtype=torch.int64
+        self.actions = torch.zeros(capacity, action_dim)
         self.next_observations = torch.zeros(capacity, observation_dim)
         self.rewards = torch.zeros(capacity, 1)
         self.terminations = torch.zeros(capacity, 1, dtype=torch.int)
@@ -35,3 +35,4 @@ class ReplayBuffer:
 
     def __len__(self):
         return min(self.cursor, self.capacity)
+    

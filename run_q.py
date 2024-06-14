@@ -10,12 +10,12 @@ configs = {}
 
 
 def main():
-    env = gym.make('FrozenLake-v1', desc=None, map_name="4x4", is_slippery=True) # creates gym env
-    Q = np.zeros((env.observation_space.n, env.action_space.n)) # initializes q-table with zeros
+    env = gym.make('FrozenLake-v1', desc=None, map_name="4x4", is_slippery=True)
+    Q = np.zeros((env.observation_space.n, env.action_space.n))
     print(Q)
-    summary_writer = SummaryWriter(configs['log_dir']) # tensorboard log
-    train(Q, env, summary_writer, configs) # train algorithm
-    evaluate(Q, env, configs, episodes=1000) # eval algorithm
+    summary_writer = SummaryWriter(configs['log_dir'])
+    train(Q, env, summary_writer, configs)
+    evaluate(Q, env, configs, episodes=1000)
     
 
 if __name__ == '__main__':

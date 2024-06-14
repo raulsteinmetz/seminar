@@ -12,11 +12,11 @@ def evaluate(Q, env, configs, episodes=100):
     total_rewards = 0
 
     for _ in range(episodes):
-        state = env.reset()[0] # gymnasium returns dictionary
+        state = env.reset()[0]
         episode_reward = 0
         done = False
         for _ in range(configs['max_steps']):
-            action = _choose_action(state, Q, 0, env.action_space, eval=True) # only exploitation
+            action = _choose_action(state, Q, 0, env.action_space, eval=True)
             next_state, reward, done, truncated, _ = env.step(action)
             done = done or truncated
             episode_reward += reward
@@ -34,15 +34,15 @@ def train(Q, env, summary_writer, configs):
     rewards = []
     moving_avg_rewards = []
     for episode in tqdm(range(configs['episodes'])):
-        state = env.reset()[0] # gymnasium returns dictionary
+        state = env.reset()[0]
         total_reward = 0
 
         for _ in range(configs['max_steps']):
             action = _choose_action(state, Q, epsilon, env.action_space, eval=False)
             next_state, reward, done, truncated, _ = env.step(action)
             done = done or truncated
-            best_next_action = np.argmax(Q[next_state, :]) # q is updated using the best action for the next state
-            Q[state, action] = Q[state, action] + configs['alpha'] * (reward + configs['gamma'] * Q[next_state, best_next_action] - Q[state, action]) # updating table
+            best_next_action = np.argmax(Q[next_state, :])
+            Q[state, action] = Q[state, action] + configs['alpha'] * (reward + configs['gamma'] * Q[next_state, best_next_action] - Q[state, action])
 
             state = next_state
             total_reward += reward
@@ -51,9 +51,9 @@ def train(Q, env, summary_writer, configs):
                 break
 
         rewards.append(total_reward)
-        epsilon = max(configs['epsilon_min'], epsilon * configs['epsilon_decay']) # reducing exploration
+        epsilon = max(configs['epsilon_min'], epsilon * configs['epsilon_decay'])
 
-        # logging
+
         if len(rewards) >= 100:
             moving_avg = np.mean(rewards[-100:])
         else:
